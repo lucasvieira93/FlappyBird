@@ -4,6 +4,7 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -11,6 +12,8 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.viewport.StretchViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 import java.util.Random;
 
@@ -28,8 +31,8 @@ public class FlappyBird extends ApplicationAdapter {
 //    private ShapeRenderer shape;
 
     //atributos de configuração
-    private int larguraDispositivo;
-    private int alturaDispositivo;
+    private float larguraDispositivo;
+    private float alturaDispositivo;
     private int pontuacao = 0;
     private int estadoJogo = 0; //0 = Jogo Parado, 1 = Jogo em Andamento, 2 = Game Over
     private Random numeroRandomico;
@@ -45,6 +48,12 @@ public class FlappyBird extends ApplicationAdapter {
     private float deltaTime;
     private float alturaAleatoria;
 
+    //Câmera
+    private OrthographicCamera camera;
+    private Viewport viewport;
+    private final float VIRTUAL_WIDTH = 768;
+    private final float VIRTUAL_HEIGHT = 1024;
+
     @Override
     public void create() {
 
@@ -57,40 +66,48 @@ public class FlappyBird extends ApplicationAdapter {
 
         fonte = new BitmapFont();
         fonte.setColor(Color.WHITE);
-        fonte.getData().setScale(8);
+        fonte.getData().setScale(3);
 
         mensagem = new BitmapFont();
         mensagem.setColor(Color.WHITE);
         mensagem.getData().setScale(3);
 
-        passaro = new Texture[3];
+        passaro = new Texture[4];
         passaro[0] = new Texture("passaro1.png");
         passaro[1] = new Texture("passaro2.png");
         passaro[2] = new Texture("passaro3.png");
+        passaro[3] = new Texture("passaro2.png");
+
+        //config da camera
+        camera = new OrthographicCamera();
+        camera.position.set(VIRTUAL_WIDTH/2, VIRTUAL_HEIGHT/2, 0);
+        viewport = new StretchViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, camera);
 
         fundo = new Texture("fundo.png");
         gameOver = new Texture("game_over.png");
         canoBaixo = new Texture("cano_baixo_maior.png");
         canoTopo = new Texture("cano_topo_maior.png");
 
-        larguraDispositivo = Gdx.graphics.getWidth();
-        alturaDispositivo = Gdx.graphics.getHeight();
+        larguraDispositivo = VIRTUAL_WIDTH;
+        alturaDispositivo = VIRTUAL_HEIGHT;
 
         posicaoInicialVertical = alturaDispositivo / 2;
         posicaoMovimentoCanoHorizontal = larguraDispositivo;
-        espacoEntreCanos = 350;
+        espacoEntreCanos = 230;
     }
 
     @Override
     public void render() {
+
         //renderização no celular
-        Gdx.gl.glClearColor(1, 1, 1, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        camera.update();
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT );
 
         deltaTime = Gdx.graphics.getDeltaTime();
-        variacao += deltaTime * 10;
+        variacao += deltaTime * 15;
         //Sprite variando
-        if (variacao > 3) variacao = 0;
+        if (variacao > 4) variacao = 0;
 
         if (estadoJogo == 0) {
             if (Gdx.input.justTouched()) {
@@ -98,13 +115,12 @@ public class FlappyBird extends ApplicationAdapter {
             }
 
         } if (estadoJogo == 1) {
-
             velocidadeQueda++;
             posicaoMovimentoCanoHorizontal -= deltaTime * velocidadeCano;
 
             //toque
             if (Gdx.input.justTouched()) {
-                velocidadeQueda = -20;
+                velocidadeQueda = -15;
             }
 
             //gravidade
@@ -113,9 +129,9 @@ public class FlappyBird extends ApplicationAdapter {
             }
 
             //movimentação dos canos
-            if (posicaoMovimentoCanoHorizontal < -canoTopo.getWidth()) {
+            if (posicaoMovimentoCanoHorizontal <- canoTopo.getWidth()) {
                 posicaoMovimentoCanoHorizontal = larguraDispositivo;
-                alturaAleatoria = numeroRandomico.nextInt(400) - 200;
+                alturaAleatoria = numeroRandomico.nextInt(600) - 300;
                 velocidadeCano += 30;
                 pontuacao++;
             }
@@ -129,6 +145,9 @@ public class FlappyBird extends ApplicationAdapter {
 //            shape.end();
         }
 
+        // configurar dados de projeção da camera
+        batch.setProjectionMatrix(camera.combined);
+
         batch.begin();
 
         batch.draw(fundo, 0, 0, larguraDispositivo, alturaDispositivo);
@@ -139,7 +158,7 @@ public class FlappyBird extends ApplicationAdapter {
 
         if (estadoJogo == 2) { // Game Over
             batch.draw(gameOver, larguraDispositivo/2 - gameOver.getWidth()/2, alturaDispositivo/2);
-            fonte.draw(batch, "Toque para reiniciar!", larguraDispositivo/2 - 500, alturaDispositivo / 2 - gameOver.getHeight() / 2);
+            fonte.draw(batch, "Toque para reiniciar!", larguraDispositivo/2 - 200, alturaDispositivo / 2 - gameOver.getHeight() / 2);
 
             if (Gdx.input.justTouched()){
                 estadoJogo = 0;
@@ -170,7 +189,10 @@ public class FlappyBird extends ApplicationAdapter {
             posicaoInicialVertical = posicaoInicialVertical - velocidadeQueda;
             velocidadeQueda++;
         }
-
     }
 
+    @Override
+    public void resize(int width, int height) {
+        viewport.update(width, height);
+    }
 }
